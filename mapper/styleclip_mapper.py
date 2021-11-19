@@ -23,6 +23,9 @@ class StyleCLIPMapper(nn.Module):
 		# Load weights if needed
 		self.load_weights()
 
+		# TODO: not sure, but try to fix it by copying from `run_optimization.py`
+		self.latent_avg = self.decoder.mean_latent(4096)
+
 	def set_mapper(self):
 		if self.opts.work_in_stylespace:
 			mapper = latent_mappers.WithoutToRGBStyleSpaceMapper(self.opts)
