@@ -3,6 +3,11 @@ from torch import nn
 
 from models.facial_recognition.model_irse import Backbone
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda"
+
 
 class IDLoss(nn.Module):
     def __init__(self, opts):
@@ -13,7 +18,7 @@ class IDLoss(nn.Module):
         self.pool = torch.nn.AdaptiveAvgPool2d((256, 256))
         self.face_pool = torch.nn.AdaptiveAvgPool2d((112, 112))
         self.facenet.eval()
-        self.facenet.cuda()
+        self.facenet.to(device)
         self.opts = opts
 
     def extract_feats(self, x):

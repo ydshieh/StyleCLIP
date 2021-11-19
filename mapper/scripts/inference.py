@@ -20,6 +20,11 @@ from mapper.datasets.latents_dataset import LatentsDataset, StyleSpaceLatentsDat
 from mapper.options.test_options import TestOptions
 from mapper.styleclip_mapper import StyleCLIPMapper
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+	device = "cuda"
+
 
 def run(test_opts):
 	out_path_results = os.path.join(test_opts.exp_dir, 'inference_results')
@@ -33,7 +38,7 @@ def run(test_opts):
 
 	net = StyleCLIPMapper(opts)
 	net.eval()
-	net.cuda()
+	net.to(device)
 
 	test_latents = torch.load(opts.latents_test_path)
 	if opts.work_in_stylespace:
@@ -57,10 +62,10 @@ def run(test_opts):
 		with torch.no_grad():
 			if opts.work_in_stylespace:
 				input_cuda = convert_s_tensor_to_list(input_batch)
-				input_cuda = [c.cuda() for c in input_cuda]
+				input_cuda = [c.to(device) for c in input_cuda]
 			else:
 				input_cuda = input_batch
-				input_cuda = input_cuda.cuda()
+				input_cuda = input_cuda.to(device)
 
 			tic = time.time()
 			result_batch = run_on_batch(input_cuda, net, opts.couple_outputs, opts.work_in_stylespace)

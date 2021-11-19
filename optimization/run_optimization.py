@@ -16,6 +16,12 @@ from utils import ensure_checkpoint_exists
 
 STYLESPACE_INDICES_WITHOUT_TORGB = [i for i in range(len(STYLESPACE_DIMENSIONS)) if i not in list(range(1, len(STYLESPACE_DIMENSIONS), 3))]
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda"
+
+
 def get_lr(t, initial_lr, rampdown=0.25, rampup=0.05):
     lr_ramp = min(1, (1 - t) / rampdown)
     lr_ramp = 0.5 - 0.5 * math.cos(lr_ramp * math.pi)
@@ -26,19 +32,19 @@ def get_lr(t, initial_lr, rampdown=0.25, rampup=0.05):
 
 def main(args):
     ensure_checkpoint_exists(args.ckpt)
-    text_inputs = torch.cat([clip.tokenize(args.description)]).cuda()
+    text_inputs = torch.cat([clip.tokenize(args.description)]).to(device)
     os.makedirs(args.results_dir, exist_ok=True)
 
     g_ema = Generator(args.stylegan_size, 512, 8)
     g_ema.load_state_dict(torch.load(args.ckpt)["g_ema"], strict=False)
     g_ema.eval()
-    g_ema = g_ema.cuda()
+    g_ema = g_ema.to(device)
     mean_latent = g_ema.mean_latent(4096)
 
     if args.latent_path:
-        latent_code_init = torch.load(args.latent_path).cuda()
+        latent_code_init = torch.load(args.latent_path).to(device)
     elif args.mode == "edit":
-        latent_code_init_not_trunc = torch.randn(1, 512).cuda()
+        latent_code_init_not_trunc = torch.randn(1, 512).to(device)
         with torch.no_grad():
             _, latent_code_init, _ = g_ema([latent_code_init_not_trunc], return_latents=True,
                                         truncation=args.truncation, truncation_latent=mean_latent)

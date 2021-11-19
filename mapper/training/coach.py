@@ -15,6 +15,11 @@ from mapper.training.ranger import Ranger
 from mapper.training import train_utils
 from mapper.training.train_utils import convert_s_tensor_to_list
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+	device = "cuda"
+
 
 class Coach:
 	def __init__(self, opts):
@@ -22,7 +27,7 @@ class Coach:
 
 		self.global_step = 0
 
-		self.device = 'cuda:0'
+		self.device = device
 		self.opts.device = self.device
 
 		# Initialize network
@@ -52,7 +57,7 @@ class Coach:
 										  num_workers=int(self.opts.test_workers),
 										  drop_last=True)
 
-		self.text_inputs = torch.cat([clip.tokenize(self.opts.description)]).cuda()
+		self.text_inputs = torch.cat([clip.tokenize(self.opts.description)]).to(self.device)
 
 		# Initialize logger
 		log_dir = os.path.join(opts.exp_dir, 'logs')
@@ -183,7 +188,7 @@ class Coach:
 		if self.opts.latents_train_path:
 			train_latents = torch.load(self.opts.latents_train_path)
 		else:
-			train_latents_z = torch.randn(self.opts.train_dataset_size, 512).cuda()
+			train_latents_z = torch.randn(self.opts.train_dataset_size, 512).to(self.device)
 			train_latents = []
 			for b in range(self.opts.train_dataset_size // self.opts.batch_size):
 				with torch.no_grad():
@@ -195,7 +200,7 @@ class Coach:
 		if self.opts.latents_test_path:
 			test_latents = torch.load(self.opts.latents_test_path)
 		else:
-			test_latents_z = torch.randn(self.opts.train_dataset_size, 512).cuda()
+			test_latents_z = torch.randn(self.opts.train_dataset_size, 512).to(self.device)
 			test_latents = []
 			for b in range(self.opts.test_dataset_size // self.opts.test_batch_size):
 				with torch.no_grad():

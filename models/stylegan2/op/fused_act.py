@@ -4,8 +4,13 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+# TODO: To be removed (not used)
 module_path = os.path.dirname(__file__)
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda"
 
 
 class FusedLeakyReLU(nn.Module):
@@ -22,7 +27,7 @@ class FusedLeakyReLU(nn.Module):
 
 def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5):
     rest_dim = [1] * (input.ndim - bias.ndim - 1)
-    input = input.cuda()
+    input = input.to(device)
     if input.ndim == 3:
         return (
             F.leaky_relu(
