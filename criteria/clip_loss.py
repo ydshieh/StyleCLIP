@@ -2,12 +2,17 @@
 import torch
 import clip
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda"
+
 
 class CLIPLoss(torch.nn.Module):
 
     def __init__(self, opts):
         super(CLIPLoss, self).__init__()
-        self.model, self.preprocess = clip.load("ViT-B/32", device="cuda")
+        self.model, self.preprocess = clip.load("ViT-B/32", device=device)
         self.upsample = torch.nn.Upsample(scale_factor=7)
         self.avg_pool = torch.nn.AvgPool2d(kernel_size=opts.stylegan_size // 32)
 
