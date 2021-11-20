@@ -1,4 +1,5 @@
 import os
+import time
 
 import clip
 import torch
@@ -74,8 +75,14 @@ class Coach:
 
 	def train(self):
 		self.net.train()
+
+		total_time = 0.0
+
 		while self.global_step < self.opts.max_steps:
 			for batch_idx, batch in enumerate(self.train_dataloader):
+
+				s = time.time()
+
 				self.optimizer.zero_grad()
 				if self.opts.work_in_stylespace:
 					w = convert_s_tensor_to_list(batch)
@@ -96,6 +103,10 @@ class Coach:
 				loss.backward()
 				self.optimizer.step()
 
+				e = time.time()
+				total_time += (e - s)
+				average_time_per_step = total_time / (self.global_step + 1)
+
 				# Logging related
 				if self.global_step % self.opts.image_interval == 0 or (
 						self.global_step < 1000 and self.global_step % 1000 == 0):
@@ -103,6 +114,7 @@ class Coach:
 				if self.global_step % self.opts.board_interval == 0:
 					self.print_metrics(loss_dict, prefix='train')
 					self.log_metrics(loss_dict, prefix='train')
+					print(f"average time per step: {average_time_per_step}")
 
 				# Validation related
 				val_loss_dict = None
