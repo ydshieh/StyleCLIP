@@ -3,6 +3,11 @@ from torch import nn
 from mapper import latent_mappers
 from models.stylegan2.model import Generator
 
+# Try to make the code work both on CPU/GPU
+device = "cpu"
+if torch.cuda.is_available():
+	device = "cuda"
+
 
 def get_keys(d, name):
 	if 'state_dict' in d:
@@ -22,6 +27,11 @@ class StyleCLIPMapper(nn.Module):
 		self.face_pool = torch.nn.AdaptiveAvgPool2d((256, 256))
 		# Load weights if needed
 		self.load_weights()
+
+		# Try to make `self.latent_avg` below work.
+		self.mapper = self.mapper.to(device)
+		self.decoder = self.decoder.to(device)
+		self.face_pool = self.face_pool.to(device)
 
 		# TODO: not sure, but try to fix it by copying from `run_optimization.py`
 		self.latent_avg = self.decoder.mean_latent(4096)
