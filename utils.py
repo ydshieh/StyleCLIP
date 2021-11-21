@@ -21,7 +21,7 @@ google_drive_paths = {
 
     "example_celebs.pt": "https://drive.google.com/uc?id=1VL3lP4avRhz75LxSza6jgDe-pHd2veQG",
     
-    "model_ir_se50.pth": "1N0MZSqPRJpLfP4mFQCS14ikrVSe8vQlL",
+    "model_ir_se50.pth": "https://drive.google.com/uc?id=1N0MZSqPRJpLfP4mFQCS14ikrVSe8vQlL",
 }
 
 
