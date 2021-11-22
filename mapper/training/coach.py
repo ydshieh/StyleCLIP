@@ -114,9 +114,9 @@ class Coach:
 					x_hat, _, w_hat = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1, input_is_stylespace=True)
 				else:
 
-                    print(w)
-		            print(w.shape)
-		            print('--------')
+					print(w)
+					print(w.shape)
+					print('--------')
 
 					# w_extended = w
 					w_extended = torch.cat([w, text_embedding], dim=-1)
