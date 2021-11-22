@@ -3,6 +3,7 @@ from argparse import Namespace
 
 import torchvision
 import numpy as np
+import clip
 import torch
 from torch.utils.data import DataLoader
 import sys
@@ -53,7 +54,9 @@ def run(test_opts):
 
 	if opts.n_images is None:
 		opts.n_images = len(dataset)
-	
+
+	description = opts.description
+
 	global_i = 0
 	global_time = []
 	for input_batch in tqdm(dataloader):
@@ -68,7 +71,7 @@ def run(test_opts):
 				input_cuda = input_cuda.to(device)
 
 			tic = time.time()
-			result_batch = run_on_batch(input_cuda, net, opts.couple_outputs, opts.work_in_stylespace)
+			result_batch = run_on_batch(input_cuda, net, opts.couple_outputs, opts.work_in_stylespace, description)
 			toc = time.time()
 			global_time.append(toc - tic)
 
@@ -91,16 +94,36 @@ def run(test_opts):
 		f.write(result_str)
 
 
-def run_on_batch(inputs, net, couple_outputs=False, stylespace=False):
+def run_on_batch(inputs, net, couple_outputs=False, stylespace=False, description=None):
 	w = inputs
+
 	with torch.no_grad():
+
+		text_inputs = torch.cat([clip.tokenize(description)]).to(device)
+		text_embedding = net.clip_model.encode_text(text_inputs).to(device)
+
+		# `w` has shape = (batch_size, 18 (?), latent_dim)
+		num_samples = w.size()[0]
+		latent_dim = text_embedding.size()[-1]
+		repeat = w.size()[1]
+
+		shape = (num_samples, 1, latent_dim)
+		text_embedding = text_embedding.view(shape)
+		shape = (num_samples, repeat, latent_dim)
+		text_embedding = torch.broadcast_to(text_embedding, shape)
+
+		# w_extended = w
+
+		text_weight = net.text_weight(torch.cat([w, text_embedding], dim=-1))
+		w_extended = w + text_weight * text_embedding
+
 		if stylespace:
-			delta = net.mapper(w)
+			delta = net.mapper(w_extended)
 			w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
 			x_hat, _, w_hat = net.decoder([w_hat], input_is_latent=True, return_latents=True,
 			                                   randomize_noise=False, truncation=1, input_is_stylespace=True)
 		else:
-			w_hat = w + 0.1 * net.mapper(w)
+			w_hat = w + 0.1 * net.mapper(w_extended)
 			x_hat, w_hat, _ = net.decoder([w_hat], input_is_latent=True, return_latents=True,
 			                                   randomize_noise=False, truncation=1)
 		result_batch = (x_hat, w_hat)
