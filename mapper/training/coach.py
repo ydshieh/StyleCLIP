@@ -34,6 +34,8 @@ class Coach:
 		# Initialize network
 		self.net = StyleCLIPMapper(self.opts).to(self.device)
 
+		self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.device)
+
 		# Initialize loss
 		if self.opts.id_lambda > 0:
 			self.id_loss = id_loss.IDLoss(self.opts).to(self.device).eval()
@@ -61,7 +63,7 @@ class Coach:
 		descriptions = self.opts.description
 		self.descriptions = descriptions.split(",")
 		self.text_inputs = torch.cat([clip.tokenize(x) for x in self.descriptions]).to(self.device)
-		self.text_embedding = self.net.clip.encode_text(self.text_inputs).to(self.device)
+		self.text_embedding = self.clip_model.encode_text(self.text_inputs).to(self.device)
 
 		# Initialize logger
 		log_dir = os.path.join(opts.exp_dir, 'logs')
