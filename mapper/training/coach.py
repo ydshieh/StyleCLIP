@@ -62,8 +62,9 @@ class Coach:
 
 		descriptions = self.opts.description
 		self.descriptions = descriptions.split(",")
-		self.text_inputs = torch.cat([clip.tokenize(x) for x in self.descriptions]).to(self.device)
-		self.text_embedding = self.clip_model.encode_text(self.text_inputs).to(self.device)
+		with torch.no_grad:
+			self.text_inputs = torch.cat([clip.tokenize(x) for x in self.descriptions]).to(self.device)
+			self.text_embedding = self.clip_model.encode_text(self.text_inputs).to(self.device)
 
 		# Initialize logger
 		log_dir = os.path.join(opts.exp_dir, 'logs')
@@ -86,21 +87,22 @@ class Coach:
 		while self.global_step < self.opts.max_steps:
 			for batch_idx, batch in enumerate(self.train_dataloader):
 
-				num_texts = len(self.text_inputs)
-				num_samples = batch.size()[0]
-				weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
-				indices = torch.multinomial(weights, num_samples, replacement=True)
-				text_batch = self.text_inputs[indices]
-				text_embedding = self.text_embedding[indices]
+				with torch.no_grad:
+					num_texts = len(self.text_inputs)
+					num_samples = batch.size()[0]
+					weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
+					indices = torch.multinomial(weights, num_samples, replacement=True)
+					text_batch = self.text_inputs[indices]
+					text_embedding = self.text_embedding[indices]
 
-				# `w` has shape = (batch_size, 18 (?), latent_dim)
-				latent_dim = text_embedding.size()[-1]
-				repeat = batch.size()[1]
+					# `w` has shape = (batch_size, 18 (?), latent_dim)
+					latent_dim = text_embedding.size()[-1]
+					repeat = batch.size()[1]
 
-				shape = (num_samples, 1, latent_dim)
-				text_embedding = text_embedding.view(shape)
-				shape = (num_samples, repeat, latent_dim)
-				text_embedding = torch.broadcast_to(text_embedding, shape)
+					shape = (num_samples, 1, latent_dim)
+					text_embedding = text_embedding.view(shape)
+					shape = (num_samples, repeat, latent_dim)
+					text_embedding = torch.broadcast_to(text_embedding, shape)
 
 				s = time.time()
 
@@ -115,18 +117,18 @@ class Coach:
 					x, _ = self.net.decoder([w], input_is_latent=True, randomize_noise=False, truncation=1, input_is_stylespace=self.opts.work_in_stylespace)
 				if self.opts.work_in_stylespace:
 
-					w_extended = w
+					# w_extended = w
 					# w_extended = torch.cat([w, text_embedding], dim=-1)
-					# w_extended = w + text_embedding
+					w_extended = w + text_embedding
 
 					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
 					x_hat, _, w_hat = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1, input_is_stylespace=True)
 				else:
 
-					w_extended = w
+					# w_extended = w
 					# w_extended = torch.cat([w, text_embedding], dim=-1)
-					# w_extended = w + text_embedding
+					w_extended = w + text_embedding
 
 					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)
@@ -174,21 +176,22 @@ class Coach:
 			if batch_idx > 200:
 				break
 
-			num_texts = len(self.text_inputs)
-			num_samples = batch.size()[0]
-			weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
-			indices = torch.multinomial(weights, num_samples, replacement=True)
-			text_batch = self.text_inputs[indices]
-			text_embedding = self.text_embedding[indices]
+			with torch.no_grad:
+				num_texts = len(self.text_inputs)
+				num_samples = batch.size()[0]
+				weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
+				indices = torch.multinomial(weights, num_samples, replacement=True)
+				text_batch = self.text_inputs[indices]
+				text_embedding = self.text_embedding[indices]
 
-			# `w` has shape = (batch_size, 18 (?), latent_dim)
-			latent_dim = text_embedding.size()[-1]
-			repeat = batch.size()[1]
+				# `w` has shape = (batch_size, 18 (?), latent_dim)
+				latent_dim = text_embedding.size()[-1]
+				repeat = batch.size()[1]
 
-			shape = (num_samples, 1, latent_dim)
-			text_embedding = text_embedding.view(shape)
-			shape = (num_samples, repeat, latent_dim)
-			text_embedding = torch.broadcast_to(text_embedding, shape)
+				shape = (num_samples, 1, latent_dim)
+				text_embedding = text_embedding.view(shape)
+				shape = (num_samples, repeat, latent_dim)
+				text_embedding = torch.broadcast_to(text_embedding, shape)
 
 			if self.opts.work_in_stylespace:
 				w = convert_s_tensor_to_list(batch)
@@ -201,18 +204,18 @@ class Coach:
 				x, _ = self.net.decoder([w], input_is_latent=True, randomize_noise=False, truncation=1, input_is_stylespace=self.opts.work_in_stylespace)
 				if self.opts.work_in_stylespace:
 
-					w_extended = w
+					# w_extended = w
 					# w_extended = torch.cat([w, text_embedding], dim=-1)
-					# w_extended = w + text_embedding
+					w_extended = w + text_embedding
 
 					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
 					x_hat, _, w_hat = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1, input_is_stylespace=True)
 				else:
 
-					w_extended = w
+					# w_extended = w
 					# w_extended = torch.cat([w, text_embedding], dim=-1)
-					# w_extended = w + text_embedding
+					w_extended = w + text_embedding
 
 					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)
