@@ -120,6 +120,10 @@ def run_on_batch(inputs, net, couple_outputs=False, stylespace=False, descriptio
 		text_weight = net.text_weight(torch.cat([w, text_embedding], dim=-1))
 		w_extended = w + text_weight * text_embedding
 
+		print(text_weight)
+		print(w_extended)
+		print('--------------')
+
 		if stylespace:
 			delta = net.mapper(w_extended)
 			w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
