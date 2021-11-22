@@ -62,7 +62,7 @@ class Coach:
 
 		descriptions = self.opts.description
 		self.descriptions = descriptions.split(",")
-		with torch.no_grad:
+		with torch.no_grad():
 			self.text_inputs = torch.cat([clip.tokenize(x) for x in self.descriptions]).to(self.device)
 			self.text_embedding = self.clip_model.encode_text(self.text_inputs).to(self.device)
 
@@ -87,7 +87,7 @@ class Coach:
 		while self.global_step < self.opts.max_steps:
 			for batch_idx, batch in enumerate(self.train_dataloader):
 
-				with torch.no_grad:
+				with torch.no_grad():
 					num_texts = len(self.text_inputs)
 					num_samples = batch.size()[0]
 					weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
@@ -176,7 +176,7 @@ class Coach:
 			if batch_idx > 200:
 				break
 
-			with torch.no_grad:
+			with torch.no_grad():
 				num_texts = len(self.text_inputs)
 				num_samples = batch.size()[0]
 				weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
