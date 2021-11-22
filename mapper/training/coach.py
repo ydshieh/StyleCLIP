@@ -115,18 +115,18 @@ class Coach:
 					x, _ = self.net.decoder([w], input_is_latent=True, randomize_noise=False, truncation=1, input_is_stylespace=self.opts.work_in_stylespace)
 				if self.opts.work_in_stylespace:
 
-					# w_extended = w
+					w_extended = w
 					# w_extended = torch.cat([w, text_embedding], dim=-1)
-					w_extended = w + text_embedding
+					# w_extended = w + text_embedding
 
 					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
 					x_hat, _, w_hat = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1, input_is_stylespace=True)
 				else:
 
-					# w_extended = w
+					w_extended = w
 					# w_extended = torch.cat([w, text_embedding], dim=-1)
-					w_extended = w + text_embedding
+					# w_extended = w + text_embedding
 
 					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)
