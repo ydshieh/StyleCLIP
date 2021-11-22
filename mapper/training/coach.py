@@ -62,6 +62,7 @@ class Coach:
 
 		descriptions = self.opts.description
 		self.descriptions = descriptions.split(",")
+		print(self.descriptions)
 		with torch.no_grad():
 			self.text_inputs = torch.cat([clip.tokenize(x) for x in self.descriptions]).to(self.device)
 			self.text_embedding = self.clip_model.encode_text(self.text_inputs).to(self.device)
