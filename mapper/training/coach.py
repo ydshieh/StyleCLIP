@@ -116,7 +116,8 @@ class Coach:
 				if self.opts.work_in_stylespace:
 
 					# w_extended = w
-					w_extended = torch.cat([w, text_embedding], dim=-1)
+					# w_extended = torch.cat([w, text_embedding], dim=-1)
+					w_extended = w + text_embedding
 
 					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
@@ -128,7 +129,8 @@ class Coach:
 					print('--------')
 
 					# w_extended = w
-					w_extended = torch.cat([w, text_embedding], dim=-1)
+					# w_extended = torch.cat([w, text_embedding], dim=-1)
+					w_extended = w + text_embedding
 
 					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)
@@ -183,6 +185,15 @@ class Coach:
 			text_batch = self.text_inputs[indices]
 			text_embedding = self.text_embedding[indices]
 
+			# `w` has shape = (batch_size, 18 (?), latent_dim)
+			latent_dim = text_embedding.size()[-1]
+			repeat = batch.size()[1]
+
+			shape = (num_samples, 1, latent_dim)
+			text_embedding = text_embedding.view(shape)
+			shape = (num_samples, repeat, latent_dim)
+			text_embedding = torch.broadcast_to(text_embedding, shape)
+
 			if self.opts.work_in_stylespace:
 				w = convert_s_tensor_to_list(batch)
 				w = [c.to(self.device) for c in w]
@@ -195,7 +206,8 @@ class Coach:
 				if self.opts.work_in_stylespace:
 
 					# w_extended = w
-					w_extended = torch.cat([w, text_embedding], dim=-1)
+					# w_extended = torch.cat([w, text_embedding], dim=-1)
+					w_extended = w + text_embedding
 
 					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
@@ -203,7 +215,8 @@ class Coach:
 				else:
 
 					# w_extended = w
-					w_extended = torch.cat([w, text_embedding], dim=-1)
+					# w_extended = torch.cat([w, text_embedding], dim=-1)
+					w_extended = w + text_embedding
 
 					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)

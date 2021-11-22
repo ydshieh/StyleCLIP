@@ -16,15 +16,9 @@ class Mapper(Module):
         layers = [PixelNorm()]
 
         for i in range(4):
-
-            in_dim = latent_dim
-            out_dim = latent_dim
-            if i == 0:
-                in_dim = 2 * latent_dim
-
             layers.append(
                 EqualLinear(
-                    in_dim, out_dim, lr_mul=0.01, activation='fused_lrelu'
+                    latent_dim, latent_dim, lr_mul=0.01, activation='fused_lrelu'
                 )
             )
 
