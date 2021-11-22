@@ -26,11 +26,14 @@ class StyleCLIPMapper(nn.Module):
 		self.decoder = Generator(self.opts.stylegan_size, 512, 8)
 		self.face_pool = torch.nn.AdaptiveAvgPool2d((256, 256))
 		# Load weights if needed
+		self.text_weight = torch.nn.Linear(in_features=1024, out_features=1, bias=True)
+
 		self.load_weights()
 
 		# Try to make `self.latent_avg` below work.
 		self.mapper = self.mapper.to(device)
 		self.decoder = self.decoder.to(device)
+		self.text_weight = self.text_weight.to(device)
 		self.face_pool = self.face_pool.to(device)
 
 		# TODO: not sure, but try to fix it by copying from `run_optimization.py`
@@ -53,6 +56,7 @@ class StyleCLIPMapper(nn.Module):
 			ckpt = torch.load(self.opts.checkpoint_path, map_location='cpu')
 			self.mapper.load_state_dict(get_keys(ckpt, 'mapper'), strict=True)
 			self.decoder.load_state_dict(get_keys(ckpt, 'decoder'), strict=True)
+			self.text_weight.load_state_dict(get_keys(ckpt, 'text_weight'), strict=True)
 		else:
 			print('Loading decoder weights from pretrained!')
 			ckpt = torch.load(self.opts.stylegan_weights)
