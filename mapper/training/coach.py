@@ -97,8 +97,10 @@ class Coach:
 				latent_dim = text_embedding.size()[-1]
 				repeat = batch.size()[1]
 
-				shape = (num_samples, repeat, latent_dim)
+				shape = (num_samples, 1, latent_dim)
 				text_embedding = text_embedding.view(shape)
+				shape = (num_samples, repeat, latent_dim)
+				text_embedding = torch.broadcast_to(text_embedding, shape)
 
 				s = time.time()
 
