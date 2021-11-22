@@ -93,6 +93,13 @@ class Coach:
 				text_batch = self.text_inputs[indices]
 				text_embedding = self.text_embedding[indices]
 
+				# `w` has shape = (batch_size, 18 (?), latent_dim)
+				latent_dim = text_embedding.size()[-1]
+				repeat = batch.size()[1]
+
+				shape = (num_samples, repeat, latent_dim)
+				text_embedding = text_embedding.view(shape)
+
 				s = time.time()
 
 				self.optimizer.zero_grad()
