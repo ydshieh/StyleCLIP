@@ -27,6 +27,9 @@ if torch.cuda.is_available():
 	device = "cuda"
 
 
+clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
+
+
 def run(test_opts):
 	out_path_results = os.path.join(test_opts.exp_dir, 'inference_results')
 	os.makedirs(out_path_results, exist_ok=True)
@@ -100,7 +103,7 @@ def run_on_batch(inputs, net, couple_outputs=False, stylespace=False, descriptio
 	with torch.no_grad():
 
 		text_inputs = torch.cat([clip.tokenize(description)]).to(device)
-		text_embedding = net.clip_model.encode_text(text_inputs).to(device)
+		text_embedding = clip_model.encode_text(text_inputs).to(device)
 
 		# `w` has shape = (batch_size, 18 (?), latent_dim)
 		num_samples = w.size()[0]
