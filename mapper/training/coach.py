@@ -58,7 +58,10 @@ class Coach:
 										  num_workers=int(self.opts.test_workers),
 										  drop_last=True)
 
-		self.text_inputs = torch.cat([clip.tokenize(self.opts.description)]).to(self.device)
+		descriptions = self.opts.description
+		self.descriptions = descriptions.split(",")
+		self.text_inputs = torch.cat([clip.tokenize(x) for x in self.descriptions]).to(self.device)
+		self.text_embedding = self.net.clip.encode_text(self.text_inputs).to(self.device)
 
 		# Initialize logger
 		log_dir = os.path.join(opts.exp_dir, 'logs')
@@ -81,6 +84,13 @@ class Coach:
 		while self.global_step < self.opts.max_steps:
 			for batch_idx, batch in enumerate(self.train_dataloader):
 
+				num_texts = len(self.text_inputs)
+				num_samples = batch.size()[0]
+				weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
+				indices = torch.multinomial(weights, num_samples, replacement=True)
+				text_batch = self.text_inputs[indices]
+				text_embedding = self.text_embedding[indices]
+
 				s = time.time()
 
 				self.optimizer.zero_grad()
@@ -93,13 +103,21 @@ class Coach:
 				with torch.no_grad():
 					x, _ = self.net.decoder([w], input_is_latent=True, randomize_noise=False, truncation=1, input_is_stylespace=self.opts.work_in_stylespace)
 				if self.opts.work_in_stylespace:
-					delta = self.net.mapper(w)
+
+					# w_extended = w
+					w_extended = torch.cat([w, text_embedding], dim=-1)
+
+					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
 					x_hat, _, w_hat = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1, input_is_stylespace=True)
 				else:
-					w_hat = w + 0.1 * self.net.mapper(w)
+
+					# w_extended = w
+					w_extended = torch.cat([w, text_embedding], dim=-1)
+
+					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)
-				loss, loss_dict = self.calc_loss(w, x, w_hat, x_hat)
+				loss, loss_dict = self.calc_loss(w, x, w_hat, x_hat, text_batch)
 				loss.backward()
 				self.optimizer.step()
 
@@ -143,6 +161,13 @@ class Coach:
 			if batch_idx > 200:
 				break
 
+			num_texts = len(self.text_inputs)
+			num_samples = batch.size()[0]
+			weights = torch.ones(size=(num_texts,)) * 1.0 / num_texts
+			indices = torch.multinomial(weights, num_samples, replacement=True)
+			text_batch = self.text_inputs[indices]
+			text_embedding = self.text_embedding[indices]
+
 			if self.opts.work_in_stylespace:
 				w = convert_s_tensor_to_list(batch)
 				w = [c.to(self.device) for c in w]
@@ -153,13 +178,21 @@ class Coach:
 			with torch.no_grad():
 				x, _ = self.net.decoder([w], input_is_latent=True, randomize_noise=False, truncation=1, input_is_stylespace=self.opts.work_in_stylespace)
 				if self.opts.work_in_stylespace:
-					delta = self.net.mapper(w)
+
+					# w_extended = w
+					w_extended = torch.cat([w, text_embedding], dim=-1)
+
+					delta = self.net.mapper(w_extended)
 					w_hat = [c + 0.1 * delta_c for (c, delta_c) in zip(w, delta)]
 					x_hat, _, w_hat = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1, input_is_stylespace=True)
 				else:
-					w_hat = w + 0.1 * self.net.mapper(w)
+
+					# w_extended = w
+					w_extended = torch.cat([w, text_embedding], dim=-1)
+
+					w_hat = w + 0.1 * self.net.mapper(w_extended)
 					x_hat, w_hat, _ = self.net.decoder([w_hat], input_is_latent=True, return_latents=True, randomize_noise=False, truncation=1)
-				loss, cur_loss_dict = self.calc_loss(w, x, w_hat, x_hat)
+				loss, cur_loss_dict = self.calc_loss(w, x, w_hat, x_hat, text_batch)
 			agg_loss_dict.append(cur_loss_dict)
 
 			# Logging related
@@ -237,7 +270,7 @@ class Coach:
 		print("Number of test samples: {}".format(len(test_dataset)))
 		return train_dataset, test_dataset
 
-	def calc_loss(self, w, x, w_hat, x_hat):
+	def calc_loss(self, w, x, w_hat, x_hat, text_batch):
 		loss_dict = {}
 		loss = 0.0
 		if self.opts.id_lambda > 0:
@@ -246,8 +279,8 @@ class Coach:
 			loss_dict['id_improve'] = float(sim_improvement)
 			loss = loss_id * self.opts.id_lambda
 		if self.opts.clip_lambda > 0:
-			batched_text_inputs = torch.broadcast_to(self.text_inputs, (x_hat.size()[0], self.text_inputs.size()[1])).to(self.device)
-			loss_clip = self.clip_loss(x_hat, batched_text_inputs).mean()
+			### batched_text_inputs = torch.broadcast_to(self.text_inputs, (x_hat.size()[0], self.text_inputs.size()[1])).to(self.device)
+			loss_clip = self.clip_loss(x_hat, text_batch).mean()
 			loss_dict['loss_clip'] = float(loss_clip)
 			loss += loss_clip * self.opts.clip_lambda
 		if self.opts.latent_l2_lambda > 0:
